@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ISHARA_COFFEE // GESTURE RECOGNITION SYSTEM</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#DFFF00',
+                    'on-primary-fixed': '#000000',
+                    background: '#000000',
+                    'surface-dim': '#000000',
+                    'surface-container': '#080808',
+                    'surface-container-low': '#040404',
+                    'surface-container-highest': '#101010',
+                    'on-surface': '#DFFF00',
+                    'on-surface-variant': '#A8B085',
+                    'outline-variant': '#1A1A1A',
+                }
+            }
+        }
+    }
+</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+    body { font-family: 'JetBrains Mono', monospace; font-weight: 700; background: #000; color: #DFFF00; }
+
+    .crt-overlay {
+        position: fixed; inset: 0;
+        background:
+            linear-gradient(rgba(223,255,0,0.02) 50%, transparent 50%),
+            radial-gradient(circle, transparent 60%, rgba(0,0,0,0.55) 100%);
+        background-size: 100% 4px, 100% 100%;
+        pointer-events: none; z-index: 200;
+    }
+
+    .glitch-text { text-shadow: 2px 0 #ff00c1, -2px 0 #00fff9; }
+    .pulse-soft { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+
+    @keyframes subtle-glitch {
+        0%  { transform:translate(0);        text-shadow:none; }
+        20% { transform:translate(-2px,1px);  text-shadow:2px 0 #ff00c1; }
+        40% { transform:translate(2px,-1px);  text-shadow:-2px 0 #00fff9; }
+        60% { transform:translate(-1px,-1px); }
+        80% { transform:translate(1px,1px); }
+        100%{ transform:translate(0); }
+    }
+    .animate-subtle-glitch:hover { animation: subtle-glitch 0.2s ease-in-out infinite; }
+
+    @keyframes ticker {
+        0%   { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+    }
+    .ticker-track { display: inline-flex; gap: 64px; animation: ticker 22s linear infinite; }
+
+    .dashed-box {
+        background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%23DFFF00' stroke-width='3' stroke-dasharray='18%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+    }
+
+    @keyframes shutdown-flicker {
+        0%{opacity:1}10%{opacity:0}20%{opacity:1}30%{opacity:0}40%{opacity:1}55%{opacity:0}70%{opacity:1}85%{opacity:0}100%{opacity:0}
+    }
+    .shutdown-flicker { animation: shutdown-flicker 0.6s ease-in forwards; }
+
+    @keyframes restore-flicker {
+        0%{opacity:0}15%{opacity:1}30%{opacity:0}50%{opacity:1}65%{opacity:0}80%{opacity:1}100%{opacity:1}
+    }
+    .restore-flicker { animation: restore-flicker 0.6s ease-out forwards; }
+
+    @keyframes neon-sign-blink {
+        0%  { opacity:1; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5),0 0 100px rgba(223,255,0,.3); }
+        4%  { opacity:0.15; text-shadow:none; }
+        6%  { opacity:1; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5); }
+        8%  { opacity:0.15; text-shadow:none; }
+        10% { opacity:1; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5),0 0 100px rgba(223,255,0,.3); }
+        50% { opacity:1; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5),0 0 100px rgba(223,255,0,.3); }
+        51% { opacity:0.1; text-shadow:none; }
+        52% { opacity:1; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5); }
+        100%{ opacity:1; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5),0 0 100px rgba(223,255,0,.3); }
+    }
+    .neon-sign-blink { animation: neon-sign-blink 3s ease-in-out infinite; text-shadow:0 0 30px rgba(223,255,0,.9),0 0 60px rgba(223,255,0,.5),0 0 100px rgba(223,255,0,.3); }
+
+    #loading-screen {
+        position:fixed; inset:0; z-index:500; background:#000;
+        display:flex; flex-direction:column; align-items:center; justify-content:center; gap:28px;
+        transition: opacity 0.8s ease; cursor:pointer;
+    }
+    #loading-screen.fade-out { opacity:0; pointer-events:none; }
+
+    @keyframes cursor-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .cursor-blink { animation: cursor-blink 0.7s step-start infinite; }
+    @keyframes hint-pulse { 0%,100%{opacity:.25} 50%{opacity:.65} }
+    .hint-pulse { animation: hint-pulse 2s ease-in-out infinite; }
+
+    #init-prompt {
+        opacity:0; pointer-events:none; transition:opacity 0.5s ease;
+        font-family:'JetBrains Mono',monospace; font-weight:700; font-size:9px;
+        letter-spacing:.4em; text-transform:uppercase; color:#DFFF00; text-align:center;
+    }
+    #init-prompt.ready { opacity:1; pointer-events:auto; animation: hint-pulse 1.2s ease-in-out infinite; }
+
+    #shutdown-screen {
+        display:none; position:fixed; inset:0; z-index:300; background:#000;
+        flex-direction:column; align-items:center; justify-content:center; gap:24px; cursor:pointer;
+    }
+    #shutdown-screen.visible { display:flex; }
+
+    #power-btn { cursor:pointer; transition:color 0.2s,text-shadow 0.2s; }
+    #power-btn:hover { color:#DFFF00; }
+    #power-btn.is-off { color:#FF3E3E; text-shadow:0 0 10px #FF3E3E,0 0 20px #FF3E3E; }
+
+    /* ── PAGE SYSTEM ── */
+    .page { display:none; flex-direction:column; height:100vh; width:100%; overflow:hidden; }
+    .page.active { display:flex; }
+
+    /* ── SHARED HEADER / FOOTER ── */
+    .app-header {
+        flex:0 0 58px; display:flex; align-items:center; justify-content:space-between;
+        padding:0 24px; background:#000; border-bottom:1px solid rgba(223,255,0,0.15); z-index:10;
+    }
+    .app-footer {
+        flex:0 0 30px; display:flex; align-items:center; justify-content:space-between;
+        padding:0 20px; background:rgba(0,0,0,0.94); border-top:1px solid rgba(223,255,0,0.08);
+        overflow:hidden; z-index:10;
+    }
+    .body-row { flex:1 1 0; display:flex; flex-direction:row; overflow:hidden; min-height:0; }
+
+    /* ── CONFIDENCE BAR SMOOTH TRANSITION ── */
+    #conf-bar-fill { transition: width 0.35s cubic-bezier(0.25,0.46,0.45,0.94); }
+
+    /* ── DOTS ── */
+    .dot-on  { width:6px;height:6px;border-radius:50%;background:#DFFF00;box-shadow:0 0 5px #DFFF00;flex-shrink:0; }
+    .dot-off { width:6px;height:6px;border-radius:50%;background:#DFFF00;opacity:.18;flex-shrink:0; }
+    @keyframes cam-blink { 0%,100%{opacity:1;box-shadow:0 0 7px #DFFF00} 50%{opacity:.2;box-shadow:none} }
+    .dot-camera-blink { width:6px;height:6px;border-radius:50%;background:#DFFF00;flex-shrink:0; animation:cam-blink 1s ease-in-out infinite; }
+
+    #legend-panel {
+        flex:0 0 210px; display:flex; flex-direction:column; padding:18px 16px;
+        border-right:1px solid rgba(223,255,0,0.1); background:#060606; overflow-y:auto;
+    }
+    #center-col {
+        flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+        padding:20px 28px 18px; gap:14px; background:#000; position:relative; overflow:hidden; min-width:0;
+    }
+    .grid-bg { position:absolute; inset:0; pointer-events:none; opacity:0.04; display:grid; grid-template-columns:repeat(12,1fr); }
+    .grid-bg > div { border-right:1px solid #DFFF00; }
+    #scan-box {
+        flex:1 1 0; width:100%; max-width:540px; min-height:0; position:relative;
+        display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.4);
+    }
+    .corner { position:absolute; width:22px; height:22px; }
+    .corner.tl { top:0;left:0; border-top:3px solid #DFFF00; border-left:3px solid #DFFF00; }
+    .corner.tr { top:0;right:0; border-top:3px solid #DFFF00; border-right:3px solid #DFFF00; }
+    .corner.bl { bottom:0;left:0; border-bottom:3px solid #DFFF00; border-left:3px solid #DFFF00; }
+    .corner.br { bottom:0;right:0; border-bottom:3px solid #DFFF00; border-right:3px solid #DFFF00; }
+    #readout-strip {
+        flex:0 0 auto; width:100%; max-width:540px;
+        background:#050505; border:1px solid rgba(223,255,0,0.12); padding:12px 20px;
+        display:flex; align-items:center;
+    }
+    .rs-div { width:1px; background:rgba(223,255,0,0.12); align-self:stretch; margin:0 18px; flex-shrink:0; }
+    #camera-panel {
+        flex:0 0 210px; display:flex; flex-direction:column; padding:18px 16px;
+        border-left:1px solid rgba(223,255,0,0.1); background:#060606; gap:10px;
+    }
+    #cam-feed {
+        position:relative; width:100%; aspect-ratio:16/9; background:#000;
+        border:1px solid rgba(223,255,0,0.22); overflow:hidden; flex-shrink:0;
+    }
+    #cam-feed img { width:100%; height:100%; object-fit:cover; opacity:.55; filter:grayscale(1); }
+    .gesture-emoji { font-size:14px; line-height:1; flex-shrink:0; }
+
+    /* ── HELP MODAL ── */
+    #help-modal {
+        display:none; position:fixed; inset:0; z-index:400;
+        background:rgba(0,0,0,0.88); align-items:center; justify-content:center;
+        backdrop-filter:blur(6px);
+    }
+    #help-modal.open { display:flex; }
+    .modal-box {
+        background:#080808; border:1px solid rgba(223,255,0,0.3); max-width:500px; width:92%;
+        padding:32px; position:relative;
+    }
+    .modal-close {
+        position:absolute; top:14px; right:14px; cursor:pointer; color:#A8B085;
+        font-size:18px; transition:color 0.2s;
+    }
+    .modal-close:hover { color:#DFFF00; }
+    .shortcut-row { display:flex; align-items:center; gap:14px; padding:10px 0; border-bottom:1px solid rgba(223,255,0,0.07); }
+    .shortcut-row:last-child { border-bottom:none; }
+    .key-badge {
+        width:28px; height:28px; border:1px solid rgba(223,255,0,0.4); display:flex;
+        align-items:center; justify-content:center; font-size:11px; color:#DFFF00;
+        flex-shrink:0; letter-spacing:0;
+    }
+
+    /* ── CAMERA ERROR BANNER ── */
+    #cam-error-banner {
+        display:none; position:fixed; bottom:40px; left:50%; transform:translateX(-50%);
+        background:#1a0000; border:1px solid #ff3e3e; padding:10px 22px; z-index:250;
+        font-size:9px; color:#ff3e3e; letter-spacing:.15em; text-transform:uppercase;
+    }
+    #cam-error-banner.show { display:block; }
+
+    /* ── CUSTOM GESTURES PAGE ── */
+    #gestures-page { background:#000; }
+    .gestures-grid {
+        display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap:14px; padding:20px; overflow-y:auto; flex:1 1 0; min-height:0;
+    }
+    .gesture-card {
+        background:#080808; border:1px solid rgba(223,255,0,0.12); padding:18px;
+        display:flex; flex-direction:column; gap:10px;
+        transition: border-color 0.2s;
+    }
+    .gesture-card:hover { border-color:rgba(223,255,0,0.4); }
+    .gesture-card-name { font-size:11px; color:#DFFF00; letter-spacing:.14em; text-transform:uppercase; word-break:break-all; }
+    .gesture-card-count { font-size:8px; color:#A8B085; letter-spacing:.1em; }
+    .gesture-card-delete {
+        margin-top:auto; padding:6px 12px; background:transparent; border:1px solid rgba(255,62,62,0.3);
+        color:rgba(255,62,62,0.6); font-family:'JetBrains Mono',monospace; font-size:8px;
+        letter-spacing:.12em; text-transform:uppercase; cursor:pointer; transition:all 0.2s;
+    }
+    .gesture-card-delete:hover { background:rgba(255,62,62,0.08); border-color:#ff3e3e; color:#ff3e3e; }
+
+    /* Record modal in gestures page */
+    #record-modal {
+        display:none; position:fixed; inset:0; z-index:400;
+        background:rgba(0,0,0,0.88); align-items:center; justify-content:center;
+        backdrop-filter:blur(6px);
+    }
+    #record-modal.open { display:flex; }
+    .progress-bar-outer { height:4px; background:#111; position:relative; overflow:hidden; }
+    .progress-bar-inner { height:100%; background:#DFFF00; box-shadow:0 0 8px #DFFF00; transition:width 0.2s linear; width:0%; }
+
+    /* Retrain button pulse during training */
+    @keyframes retrain-pulse {
+        0%,100%{box-shadow:0 0 4px rgba(223,255,0,.4)} 50%{box-shadow:0 0 14px rgba(223,255,0,.9)}
+    }
+    .retraining { animation: retrain-pulse 0.8s ease-in-out infinite; }
+
+    /* Nav tab */
+    .nav-tab {
+        display:flex; align-items:center; gap:6px; padding:5px 12px;
+        border:1px solid rgba(223,255,0,0.15); cursor:pointer; font-size:9px;
+        color:#A8B085; letter-spacing:.14em; text-transform:uppercase; transition:all 0.2s;
+    }
+    .nav-tab:hover { border-color:rgba(223,255,0,0.4); color:#DFFF00; }
+    .nav-tab.active-tab { border-color:#DFFF00; color:#DFFF00; background:rgba(223,255,0,0.05); }
+
+    /* ── GLITCH PAGE TRANSITION ── */
+    @keyframes glitch-out {
+        0%   { opacity:1; transform:translate(0); filter:none; clip-path:inset(0 0 0 0); }
+        8%   { transform:translate(-6px,2px); filter:hue-rotate(90deg) saturate(8); clip-path:inset(15% 0 70% 0); }
+        16%  { transform:translate(6px,-2px); filter:hue-rotate(180deg) invert(.3); clip-path:inset(55% 0 15% 0); }
+        24%  { transform:translate(-3px,5px); filter:none; clip-path:inset(0 0 0 0); }
+        32%  { transform:translate(8px,-4px); filter:hue-rotate(270deg) saturate(10); }
+        40%  { transform:translate(-8px,2px); filter:invert(1) hue-rotate(180deg); }
+        50%  { transform:translate(4px,4px); filter:none; opacity:.6; }
+        60%  { transform:translate(-4px,-4px); filter:hue-rotate(90deg); opacity:.4; }
+        75%  { transform:translate(2px,-2px); filter:invert(.8); opacity:.15; }
+        90%  { transform:translate(-1px,1px); filter:none; opacity:.05; }
+        100% { transform:translate(0); filter:none; opacity:0; }
+    }
+    @keyframes glitch-in {
+        0%   { opacity:0; transform:translate(0); filter:invert(1); clip-path:inset(0 0 0 0); }
+        8%   { opacity:.2; transform:translate(-8px,4px); filter:hue-rotate(90deg) saturate(6); clip-path:inset(20% 0 60% 0); }
+        16%  { opacity:.05; transform:translate(8px,-4px); filter:invert(1); clip-path:inset(50% 0 20% 0); }
+        25%  { opacity:.5; transform:translate(-5px,3px); filter:hue-rotate(180deg); clip-path:inset(0 0 0 0); }
+        35%  { opacity:.2; transform:translate(6px,-3px); filter:none; }
+        45%  { opacity:.8; transform:translate(-3px,2px); filter:hue-rotate(270deg) saturate(8); }
+        55%  { opacity:.4; transform:translate(3px,-2px); filter:invert(.4); }
+        65%  { opacity:.9; transform:translate(-2px,1px); filter:none; }
+        78%  { opacity:.75; transform:translate(1px,-1px); filter:hue-rotate(45deg); }
+        90%  { opacity:.95; transform:translate(0); filter:none; }
+        100% { opacity:1; transform:translate(0); filter:none; clip-path:inset(0 0 0 0); }
+    }
+    .page-glitch-out { animation:glitch-out 0.5s ease-in forwards; pointer-events:none; }
+    .page-glitch-in  { animation:glitch-in  0.5s ease-out forwards; }
+
+    /* ── BACK ARROW BUTTON ── */
+    #back-btn {
+        display:flex; align-items:center; gap:6px;
+        padding:5px 10px; background:transparent;
+        border:1px solid rgba(223,255,0,0.2);
+        color:#A8B085; font-family:'JetBrains Mono',monospace;
+        font-size:9px; letter-spacing:.14em; text-transform:uppercase;
+        cursor:pointer; transition:all 0.2s;
+    }
+    #back-btn:hover { border-color:rgba(223,255,0,0.5); color:#DFFF00; }
+
+    /* ── GESTURE TYPE TOGGLE ── */
+    .type-toggle {
+        display:flex; gap:8px; margin-bottom:16px;
+    }
+    .type-btn {
+        flex:1; padding:8px; background:transparent;
+        border:1px solid rgba(223,255,0,0.18); color:#A8B085;
+        font-family:'JetBrains Mono',monospace; font-size:8px;
+        letter-spacing:.14em; text-transform:uppercase; cursor:pointer; transition:all 0.2s;
+    }
+    .type-btn.selected { border-color:#DFFF00; color:#DFFF00; background:rgba(223,255,0,0.07); }
+
+    /* ── LEGEND CUSTOM SECTION ── */
+    #legend-custom-single, #legend-custom-combo { display:flex; flex-direction:column; gap:9px; }
+</style>
+</head>
+<body>
+
+<div class="crt-overlay"></div>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+    <div style="text-align:center;">
+        <div class="glitch-text" style="font-family:'JetBrains Mono',monospace;font-weight:900;font-size:22px;color:#DFFF00;letter-spacing:.3em;text-transform:uppercase;margin-bottom:6px;">ISHARA_COFFEE</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-weight:400;font-size:11px;color:#A8B085;letter-spacing:.4em;text-transform:uppercase;">MODE INITIATING<span class="cursor-blink">_</span></div>
+    </div>
+    <div style="width:280px;">
+        <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:9px;color:#A8B085;letter-spacing:.2em;margin-bottom:8px;">
+            <span>BOOTING NEURAL_CORE</span><span id="load-pct">0%</span>
+        </div>
+        <div style="width:100%;height:2px;background:#1A1A1A;overflow:hidden;">
+            <div id="load-bar" style="height:100%;background:#DFFF00;width:0%;box-shadow:0 0 12px rgba(223,255,0,.6);transition:width .15s linear;"></div>
+        </div>
+    </div>
+    <div id="load-status" style="font-family:'JetBrains Mono',monospace;font-weight:400;font-size:9px;color:#333;letter-spacing:.3em;text-transform:uppercase;">HANDSHAKE: MEDIAPIPE_V0.10</div>
+    <div id="init-prompt">▶ &nbsp; CLICK OR PRESS ANY KEY TO INITIALIZE &nbsp; ◀</div>
+</div>
+
+<!-- SHUTDOWN SCREEN -->
+<div id="shutdown-screen">
+    <p style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;color:#333;letter-spacing:6px;text-transform:uppercase;">SYSTEM_SHUTDOWN // 00:00:00</p>
+    <h1 class="neon-sign-blink" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:clamp(32px,6vw,80px);color:#DFFF00;text-transform:uppercase;text-align:center;padding:0 24px;letter-spacing:.08em;line-height:1.15;">Ghar jake<br>Sutti Babu</h1>
+    <p class="hint-pulse" style="font-family:'JetBrains Mono',monospace;font-weight:700;font-size:9px;color:#3a3a3a;letter-spacing:4px;text-transform:uppercase;margin-top:8px;">SESSION TERMINATED · CLICK ANYWHERE TO RESTORE</p>
+</div>
+
+<!-- CAMERA ERROR BANNER -->
+<div id="cam-error-banner">⚠ CAMERA NOT ACCESSIBLE — CHECK CONNECTION</div>
+
+<!-- HELP MODAL -->
+<div id="help-modal">
+    <div class="modal-box">
+        <span class="modal-close material-symbols-outlined" id="help-close">close</span>
+        <div style="font-size:9px;color:#DFFF00;letter-spacing:.3em;text-transform:uppercase;margin-bottom:24px;border-bottom:1px solid rgba(223,255,0,0.1);padding-bottom:14px;">
+            KEYBOARD_SHORTCUTS // HELP
+        </div>
+        <div class="shortcut-row">
+            <div class="key-badge">R</div>
+            <div>
+                <div style="font-size:10px;color:#DFFF00;letter-spacing:.1em;">RECORD GESTURE</div>
+                <div style="font-size:8px;color:#A8B085;letter-spacing:.08em;margin-top:3px;">Start recording a new custom KNN gesture (terminal prompt)</div>
+            </div>
+        </div>
+        <div class="shortcut-row">
+            <div class="key-badge">D</div>
+            <div>
+                <div style="font-size:10px;color:#DFFF00;letter-spacing:.1em;">DELETE GESTURE</div>
+                <div style="font-size:8px;color:#A8B085;letter-spacing:.08em;margin-top:3px;">Remove a saved custom gesture from the KNN database</div>
+            </div>
+        </div>
+        <div class="shortcut-row">
+            <div class="key-badge">L</div>
+            <div>
+                <div style="font-size:10px;color:#DFFF00;letter-spacing:.1em;">LIST GESTURES</div>
+                <div style="font-size:8px;color:#A8B085;letter-spacing:.08em;margin-top:3px;">Print all saved custom gestures with sample counts to terminal</div>
+            </div>
+        </div>
+        <div class="shortcut-row">
+            <div class="key-badge">Q</div>
+            <div>
+                <div style="font-size:10px;color:#DFFF00;letter-spacing:.1em;">QUIT</div>
+                <div style="font-size:8px;color:#A8B085;letter-spacing:.08em;margin-top:3px;">Exit the gesture recognition system cleanly</div>
+            </div>
+        </div>
+        <div style="margin-top:24px;padding-top:14px;border-top:1px solid rgba(223,255,0,0.1);">
+            <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.2em;text-transform:uppercase;margin-bottom:10px;">WEB CONTROLS</div>
+            <div style="font-size:8px;color:#A8B085;letter-spacing:.08em;line-height:1.8;">
+                Custom Gestures page → record &amp; delete via browser<br>
+                Retrain button → rebuilds ML model on current KNN data<br>
+                Power icon → shutdown / restore session
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RECORD MODAL (gestures page) -->
+<div id="record-modal">
+    <div class="modal-box" style="max-width:460px;">
+        <div style="font-size:9px;color:#DFFF00;letter-spacing:.3em;text-transform:uppercase;margin-bottom:20px;border-bottom:1px solid rgba(223,255,0,.1);padding-bottom:14px;">RECORD NEW GESTURE</div>
+
+        <!-- GESTURE TYPE -->
+        <div style="font-size:8px;color:#A8B085;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">GESTURE TYPE</div>
+        <div class="type-toggle">
+            <button class="type-btn selected" id="type-single" onclick="selectGestureType('single')">
+                <span style="font-size:14px;display:block;margin-bottom:4px;">✋</span>
+                SINGLE
+            </button>
+            <button class="type-btn" id="type-combo" onclick="selectGestureType('combo')">
+                <span style="font-size:14px;display:block;margin-bottom:4px;">🤜🤛</span>
+                COMBO
+            </button>
+        </div>
+
+        <!-- EMOJI + NAME side by side -->
+        <div style="display:flex;gap:12px;margin-bottom:16px;">
+            <!-- Emoji -->
+            <div style="display:flex;flex-direction:column;gap:6px;">
+                <div style="font-size:8px;color:#A8B085;letter-spacing:.1em;text-transform:uppercase;">EMOJI</div>
+                <input id="record-emoji-input" type="text" maxlength="2"
+                       style="width:56px;background:#000;border:1px solid rgba(223,255,0,0.3);color:#DFFF00;
+                              font-family:'JetBrains Mono',monospace;font-size:20px;padding:7px 8px;
+                              outline:none;text-align:center;"
+                       placeholder=":)"
+                       oninput="syncEmojiPreview(this.value)"/>
+            </div>
+            <!-- Gesture name -->
+            <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
+                <div style="font-size:8px;color:#A8B085;letter-spacing:.1em;text-transform:uppercase;">GESTURE NAME (no spaces)</div>
+                <input id="record-name-input" type="text"
+                       style="width:100%;background:#000;border:1px solid rgba(223,255,0,0.3);color:#DFFF00;
+                              font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 12px;
+                              outline:none;letter-spacing:.1em;"
+                       placeholder="e.g. spider_man"/>
+            </div>
+        </div>
+
+        <!-- STATUS / PROGRESS -->
+        <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.15em;margin-bottom:8px;" id="record-status-text">
+            Hold the gesture in front of the camera once recording starts.
+        </div>
+        <div class="progress-bar-outer" id="record-progress-bar" style="margin-bottom:18px;">
+            <div class="progress-bar-inner" id="record-progress-fill"></div>
+        </div>
+
+        <div style="display:flex;gap:10px;">
+            <button id="record-start-btn" onclick="startWebRecord()"
+                    style="flex:1;padding:9px;background:rgba(223,255,0,0.07);border:1px solid rgba(223,255,0,0.3);
+                           color:#DFFF00;font-family:'JetBrains Mono',monospace;font-size:9px;
+                           letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">
+                START RECORDING
+            </button>
+            <button onclick="closeRecordModal()"
+                    style="padding:9px 16px;background:transparent;border:1px solid rgba(223,255,0,0.1);
+                           color:#A8B085;font-family:'JetBrains Mono',monospace;font-size:9px;
+                           letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">
+                CANCEL
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- MAIN DASHBOARD PAGE                        -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="dashboard-page" class="page active">
+
+    <header class="app-header">
+        <div class="animate-subtle-glitch" style="font-size:21px;font-weight:900;letter-spacing:-.01em;color:#DFFF00;text-transform:uppercase;">DASHBOARD</div>
+        <div style="display:flex;align-items:center;gap:18px;">
+            <div style="display:flex;align-items:center;gap:10px;background:#080808;padding:5px 12px;border:1px solid #1A1A1A;">
+                <div class="pulse-soft" style="width:7px;height:7px;border-radius:50%;background:#DFFF00;"></div>
+                <span style="font-size:9px;color:#DFFF00;letter-spacing:.14em;">ML_ACTIVE: KNN_V2</span>
+                <div style="width:1px;height:11px;background:#1A1A1A;"></div>
+                <span style="font-size:9px;color:#A8B085;letter-spacing:.1em;">NODE: 1,402</span>
+            </div>
+            <div id="real-time-clock" style="font-size:13px;font-weight:700;color:#DFFF00;letter-spacing:.14em;min-width:70px;">23:59:58</div>
+            <!-- HELP BUTTON -->
+            <span class="material-symbols-outlined" id="help-btn"
+                  style="font-size:20px;color:#A8B085;cursor:pointer;transition:color 0.2s;"
+                  title="Keyboard Shortcuts">help_outline</span>
+            <span class="material-symbols-outlined" id="power-btn" style="font-size:21px;color:#A8B085;">power_settings_new</span>
+        </div>
+    </header>
+
+    <div class="body-row">
+
+        <!-- LEFT PANEL: Gesture Legend -->
+        <aside id="legend-panel">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid rgba(223,255,0,.1);">
+                <span class="material-symbols-outlined" style="font-size:14px;color:#DFFF00;">visibility</span>
+                <span style="font-size:9px;color:#DFFF00;letter-spacing:.22em;text-transform:uppercase;">Gesture_Legend</span>
+            </div>
+            <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.22em;text-transform:uppercase;margin-bottom:9px;">SINGLE_GESTURES</div>
+            <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:18px;">
+                <div style="display:flex;align-items:center;gap:8px;color:#DFFF00;"><span class="gesture-emoji">👍</span><span style="font-size:8px;font-weight:700;letter-spacing:.1em;">THUMBS_UP</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">✌️</span><span style="font-size:8px;letter-spacing:.1em;">PEACE_SIGN</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">👊</span><span style="font-size:8px;letter-spacing:.1em;">FIST_STRIKE</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">🖐️</span><span style="font-size:8px;letter-spacing:.1em;">OPEN_HAND</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">☝️</span><span style="font-size:8px;letter-spacing:.1em;">POINTING</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">🤘</span><span style="font-size:8px;letter-spacing:.1em;">ROCK_ON</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">🤙</span><span style="font-size:8px;letter-spacing:.1em;">CALL_ME</span></div>
+            </div>
+            <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.22em;text-transform:uppercase;margin-bottom:9px;">COMBO_GESTURES</div>
+            <div style="display:flex;flex-direction:column;gap:9px;">
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">💥</span><span style="font-size:8px;letter-spacing:.1em;">BOOM_BOOM</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">🧠</span><span style="font-size:8px;letter-spacing:.1em;">NEURAL_OKAY</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">☮️</span><span style="font-size:8px;letter-spacing:.1em;">TOTAL_PEACE</span></div>
+                <div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);"><span class="gesture-emoji">🎬</span><span style="font-size:8px;letter-spacing:.1em;">ABSOLUTE_CINEMA</span></div>
+            </div>
+            <!-- CUSTOM SINGLE GESTURES IN LEGEND -->
+            <div id="legend-custom-single-wrap" style="display:none;margin-top:14px;">
+                <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.22em;text-transform:uppercase;margin-bottom:9px;">CUSTOM_SINGLE</div>
+                <div id="legend-custom-single" style="display:flex;flex-direction:column;gap:9px;"></div>
+            </div>
+            <!-- CUSTOM COMBO GESTURES IN LEGEND -->
+            <div id="legend-custom-combo-wrap" style="display:none;margin-top:14px;">
+                <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.22em;text-transform:uppercase;margin-bottom:9px;">CUSTOM_COMBO</div>
+                <div id="legend-custom-combo" style="display:flex;flex-direction:column;gap:9px;"></div>
+            </div>
+            <div style="margin-top:auto;padding-top:14px;border-top:1px solid rgba(223,255,0,.1);">
+                <button onclick="glitchToPage('gestures')"
+                        style="width:100%;display:flex;align-items:center;justify-content:center;gap:7px;
+                               padding:9px 12px;background:transparent;
+                               border:1px solid rgba(223,255,0,0.22);
+                               color:#A8B085;font-family:'JetBrains Mono',monospace;
+                               font-size:8px;letter-spacing:.18em;text-transform:uppercase;
+                               cursor:pointer;transition:all 0.2s;"
+                        onmouseover="this.style.borderColor='rgba(223,255,0,0.6)';this.style.color='#DFFF00';this.style.background='rgba(223,255,0,0.04)';"
+                        onmouseout="this.style.borderColor='rgba(223,255,0,0.22)';this.style.color='#A8B085';this.style.background='transparent';">
+                    <span class="material-symbols-outlined" style="font-size:13px;">gesture</span>
+                    CUSTOM_GESTURES
+                </button>
+            </div>
+        </aside>
+
+        <!-- CENTER COLUMN -->
+        <div id="center-col">
+            <div class="grid-bg">
+                <div></div><div></div><div></div><div></div><div></div><div></div>
+                <div></div><div></div><div></div><div></div><div></div><div></div>
+            </div>
+            <div id="scan-box" class="dashed-box">
+                <div class="corner tl"></div><div class="corner tr"></div>
+                <div class="corner bl"></div><div class="corner br"></div>
+                <div id="scan-placeholder" style="text-align:center;z-index:1;padding:24px;">
+                    <span class="material-symbols-outlined pulse-soft" style="font-size:52px;color:rgba(223,255,0,.18);display:block;margin-bottom:14px;">front_hand</span>
+                    <h2 class="pulse-soft" style="font-size:15px;letter-spacing:.3em;color:#DFFF00;text-transform:uppercase;margin:0 0 8px;font-weight:900;">WAITING FOR GESTURE</h2>
+                    <p style="font-size:9px;color:rgba(223,255,0,.32);letter-spacing:.14em;margin:0;">CALIBRATING_OPTICAL_SENSORS...</p>
+                </div>
+                <img id="gesture-img" src="" alt=""
+                     style="display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:2;"/>
+            </div>
+            <div id="readout-strip">
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:8px;color:rgba(223,255,0,.42);letter-spacing:.2em;text-transform:uppercase;margin-bottom:5px;">Active_Gesture</div>
+                    <div id="gesture-name-display" style="font-size:24px;color:#DFFF00;letter-spacing:-.01em;font-weight:900;">---</div>
+                </div>
+                <div class="rs-div"></div>
+                <div style="flex:2;min-width:0;">
+                    <div style="display:flex;justify-content:space-between;font-size:8px;color:rgba(223,255,0,.42);letter-spacing:.14em;text-transform:uppercase;margin-bottom:7px;">
+                        <span>Confidence_Threshold</span><span id="conf-pct-text">0%</span>
+                    </div>
+                    <div style="height:5px;background:#101010;position:relative;overflow:hidden;">
+                        <div id="conf-bar-fill" style="position:absolute;height:100%;width:0%;background:#DFFF00;box-shadow:0 0 8px #DFFF00;"></div>
+                    </div>
+                </div>
+                <div class="rs-div"></div>
+                <div style="flex-shrink:0;">
+                    <div style="font-size:8px;color:rgba(223,255,0,.42);letter-spacing:.2em;text-transform:uppercase;margin-bottom:5px;">Recognition_Method</div>
+                    <div id="method-badge" style="padding:5px 11px;background:rgba(223,255,0,.07);border:1px solid rgba(223,255,0,.22);font-size:9px;color:#DFFF00;letter-spacing:.1em;">---</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Camera -->
+        <aside id="camera-panel">
+            <div style="font-size:8px;color:rgba(223,255,0,.38);letter-spacing:.22em;text-transform:uppercase;">OPTICAL_INPUT</div>
+            <div id="cam-feed">
+                <img id="cam-stream" src="http://127.0.0.1:5001/video_feed" alt="Camera Feed"/>
+                <div style="position:absolute;inset:0;border:1px solid rgba(223,255,0,.14);pointer-events:none;"></div>
+                <div style="position:absolute;top:6px;left:6px;">
+                    <div style="width:5px;height:5px;border-radius:50%;background:#ef4444;animation:pulse 1.2s ease-in-out infinite;"></div>
+                </div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:34px;height:34px;border:1px solid rgba(223,255,0,.3);"></div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:36px;height:1px;background:rgba(223,255,0,.35);"></div>
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:1px;height:36px;background:rgba(223,255,0,.35);"></div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:7px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.14em;">RESOLUTION</span>
+                    <span style="font-size:7px;color:#DFFF00;letter-spacing:.1em;">1920×1080</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.14em;">CAM_FPS</span>
+                    <span id="cam-fps-display" style="font-size:7px;color:#DFFF00;letter-spacing:.1em;">-- FPS</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.14em;">LATENCY</span>
+                    <span id="cam-latency-display" style="font-size:7px;color:#DFFF00;letter-spacing:.1em;">-- MS</span>
+                </div>
+            </div>
+            <div style="flex:1;"></div>
+            <div style="border-top:1px solid rgba(223,255,0,.1);padding-top:12px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div id="dot-camera" class="dot-camera-blink"></div>
+                    <span style="font-size:8px;color:#A8B085;letter-spacing:.1em;text-transform:uppercase;">Camera</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div id="dot-hands" class="dot-off"></div>
+                    <span id="label-hands" style="font-size:8px;color:rgba(164,176,133,.32);letter-spacing:.1em;text-transform:uppercase;">Hands</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <div id="dot-audio" class="dot-off"></div>
+                    <span id="label-audio" style="font-size:8px;color:rgba(164,176,133,.32);letter-spacing:.1em;text-transform:uppercase;">Audio</span>
+                </div>
+            </div>
+        </aside>
+
+    </div>
+
+    <footer class="app-footer">
+        <div style="flex:1;overflow:hidden;white-space:nowrap;">
+            <span class="ticker-track" style="font-size:8px;color:#DFFF00;letter-spacing:.14em;">
+                <span>SYSTEM_STATUS: NOMINAL</span>
+                <span>MEDIAPIPE v0.10.3 LOADED</span>
+                <span>CORE_TEMP: 42.1°C</span>
+                <span id="latency-ticker">LATENCY: --MS</span>
+                <span id="fps-ticker">FPS: --</span>
+                <span>ISHARA_COFFEE_CORE_V2.1 READY</span>
+                <span>SYSTEM_STATUS: NOMINAL</span>
+                <span>MEDIAPIPE v0.10.3 LOADED</span>
+                <span>CORE_TEMP: 42.1°C</span>
+                <span id="latency-ticker2">LATENCY: --MS</span>
+                <span id="fps-ticker2">FPS: --</span>
+                <span>ISHARA_COFFEE_CORE_V2.1 READY</span>
+            </span>
+        </div>
+    </footer>
+
+
+</div><!-- end dashboard-page -->
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- CUSTOM GESTURES PAGE                       -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="gestures-page" class="page">
+
+    <header class="app-header">
+        <div style="display:flex;align-items:center;gap:14px;">
+            <button id="back-btn" onclick="glitchToPage('dashboard')">
+                <span class="material-symbols-outlined" style="font-size:14px;">arrow_back</span>
+                DASHBOARD
+            </button>
+            <div class="animate-subtle-glitch" style="font-size:21px;font-weight:900;letter-spacing:-.01em;color:#DFFF00;text-transform:uppercase;">CUSTOM_GESTURES</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div id="real-time-clock-g" style="font-size:13px;font-weight:700;color:#DFFF00;letter-spacing:.14em;min-width:70px;">23:59:58</div>
+            <span class="material-symbols-outlined" id="help-btn-g"
+                  style="font-size:20px;color:#A8B085;cursor:pointer;transition:color 0.2s;">help_outline</span>
+        </div>
+    </header>
+
+    <div style="flex:1 1 0;display:flex;flex-direction:column;overflow:hidden;min-height:0;">
+        <!-- Toolbar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid rgba(223,255,0,0.08);flex-shrink:0;">
+            <div style="font-size:8px;color:#A8B085;letter-spacing:.18em;text-transform:uppercase;">
+                TOTAL: <span id="gesture-count" style="color:#DFFF00;">0</span> GESTURE(S)
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button id="retrain-btn" onclick="triggerRetrain()"
+                        style="display:flex;align-items:center;gap:6px;padding:7px 14px;
+                               background:transparent;border:1px solid rgba(223,255,0,0.25);
+                               color:#DFFF00;font-family:'JetBrains Mono',monospace;font-size:8px;
+                               letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size:13px;">model_training</span>
+                    RETRAIN ML MODEL
+                </button>
+                <button onclick="openRecordModal()"
+                        style="display:flex;align-items:center;gap:6px;padding:7px 14px;
+                               background:rgba(223,255,0,0.07);border:1px solid rgba(223,255,0,0.4);
+                               color:#DFFF00;font-family:'JetBrains Mono',monospace;font-size:8px;
+                               letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;">
+                    <span class="material-symbols-outlined" style="font-size:13px;">add_circle</span>
+                    NEW GESTURE
+                </button>
+            </div>
+        </div>
+
+        <!-- Status bar -->
+        <div id="gestures-status" style="display:none;padding:8px 20px;background:#050505;border-bottom:1px solid rgba(223,255,0,0.06);font-size:8px;color:#A8B085;letter-spacing:.14em;flex-shrink:0;"></div>
+
+        <!-- Grid -->
+        <div class="gestures-grid" id="gestures-grid">
+            <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:180px;color:rgba(223,255,0,.2);font-size:9px;letter-spacing:.2em;">
+                LOADING GESTURES...
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <div style="flex:1;overflow:hidden;white-space:nowrap;">
+            <span class="ticker-track" style="font-size:8px;color:#DFFF00;letter-spacing:.14em;">
+                <span>CUSTOM_GESTURE_DB: KNN_V2</span>
+                <span>RECORD NEW GESTURES VIA BROWSER</span>
+                <span>RETRAIN ML ON DEMAND</span>
+                <span>ISHARA_COFFEE_CORE_V2.1</span>
+                <span>CUSTOM_GESTURE_DB: KNN_V2</span>
+                <span>RECORD NEW GESTURES VIA BROWSER</span>
+                <span>RETRAIN ML ON DEMAND</span>
+                <span>ISHARA_COFFEE_CORE_V2.1</span>
+            </span>
+        </div>
+    </footer>
+
+</div><!-- end gestures-page -->
+
+
+<script>
+    // ── Clock ──
+    function updateClock() {
+        const n = new Date();
+        const t = [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+        const el  = document.getElementById('real-time-clock');
+        const el2 = document.getElementById('real-time-clock-g');
+        if (el)  el.textContent  = t;
+        if (el2) el2.textContent = t;
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // ── Power ──
+    let systemOff = false;
+    const powerBtn       = document.getElementById('power-btn');
+    const shutdownScreen = document.getElementById('shutdown-screen');
+
+    powerBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (!systemOff) {
+            systemOff = true;
+            powerBtn.classList.add('is-off');
+            document.querySelectorAll('.page.active').forEach(p => {
+                p.classList.add('shutdown-flicker');
+                setTimeout(() => { p.style.opacity='0'; p.style.pointerEvents='none'; p.classList.remove('shutdown-flicker'); }, 620);
+            });
+            setTimeout(() => shutdownScreen.classList.add('visible'), 620);
+        } else {
+            restoreSystem();
+        }
+    });
+    shutdownScreen.addEventListener('click', () => { if (systemOff) restoreSystem(); });
+
+    function restoreSystem() {
+        systemOff = false;
+        powerBtn.classList.remove('is-off');
+        shutdownScreen.classList.remove('visible');
+        document.querySelectorAll('.page.active').forEach(p => {
+            p.style.pointerEvents=''; p.style.opacity='0';
+            p.classList.add('restore-flicker');
+            setTimeout(() => { p.style.opacity='1'; p.classList.remove('restore-flicker'); }, 620);
+        });
+    }
+
+    // ── Glitch Page Navigation ──
+    let isTransitioning = false;
+
+    function glitchToPage(name) {
+        if (isTransitioning) return;
+        const activePage = document.querySelector('.page.active');
+        if (!activePage) { showPage(name); return; }
+        const targetId = name + '-page';
+        if (activePage.id === targetId) return;
+
+        isTransitioning = true;
+        activePage.classList.add('page-glitch-out');
+
+        setTimeout(() => {
+            activePage.classList.remove('page-glitch-out', 'active');
+            activePage.style.display = 'none';
+
+            const targetPage = document.getElementById(targetId);
+            targetPage.style.display = 'flex';
+            targetPage.classList.add('active', 'page-glitch-in');
+
+            if (name === 'gestures') loadGestures();
+
+            setTimeout(() => {
+                targetPage.classList.remove('page-glitch-in');
+                isTransitioning = false;
+            }, 520);
+        }, 520);
+    }
+
+    // ── Page navigation (legacy, keep for compatibility) ──
+    function showPage(name) {
+        document.querySelectorAll('.page').forEach(p => {
+            p.classList.remove('active');
+            p.style.display = 'none';
+        });
+        const target = document.getElementById(name+'-page');
+        target.style.display = 'flex';
+        target.classList.add('active');
+        if (name === 'gestures') loadGestures();
+    }
+
+    // ── Help modal ──
+    document.getElementById('help-btn').addEventListener('click', () => document.getElementById('help-modal').classList.add('open'));
+    document.getElementById('help-btn-g').addEventListener('click', () => document.getElementById('help-modal').classList.add('open'));
+    document.getElementById('help-close').addEventListener('click', () => document.getElementById('help-modal').classList.remove('open'));
+    document.getElementById('help-modal').addEventListener('click', e => {
+        if (e.target === document.getElementById('help-modal')) document.getElementById('help-modal').classList.remove('open');
+    });
+
+    // ── Loading screen ──
+    const loadingScreen = document.getElementById('loading-screen');
+    const loadBar       = document.getElementById('load-bar');
+    const loadPct       = document.getElementById('load-pct');
+    const loadStatus    = document.getElementById('load-status');
+    const initPrompt    = document.getElementById('init-prompt');
+
+    const statusMessages = [
+        'HANDSHAKE: MEDIAPIPE_V0.10',
+        'LOADING_NEURAL_WEIGHTS...',
+        'CALIBRATING_OPTICAL_SENSORS',
+        'ESTABLISHING_CAMERA_LINK...',
+        'ISHARA_COFFEE MODE READY — AWAITING OPERATOR',
+    ];
+
+    let pct = 0, loadComplete = false;
+
+    // Camera permission check on load
+    fetch('http://127.0.0.1:5001/camera_check')
+        .then(r => r.json())
+        .then(d => {
+            if (!d.ok) {
+                document.getElementById('cam-error-banner').classList.add('show');
+                setTimeout(() => document.getElementById('cam-error-banner').classList.remove('show'), 6000);
+            }
+        }).catch(() => {});  // backend may not be up yet — silence
+
+    const pctInterval = setInterval(() => {
+        pct = Math.min(pct + Math.random() * 16, 100);
+        loadBar.style.width = pct + '%';
+        loadPct.textContent = Math.floor(pct) + '%';
+        loadStatus.textContent = statusMessages[Math.min(Math.floor(pct / 20), 4)];
+        if (pct >= 100 && !loadComplete) {
+            loadComplete = true;
+            clearInterval(pctInterval);
+            initPrompt.classList.add('ready');
+        }
+    }, 200);
+
+    function dismissLoading() {
+        if (!loadComplete) return;
+        loadingScreen.classList.add('fade-out');
+        setTimeout(() => { loadingScreen.style.display = 'none'; }, 900);
+        document.removeEventListener('keydown', onKeyDown);
+        loadingScreen.removeEventListener('click', dismissLoading);
+    }
+    function onKeyDown() { dismissLoading(); }
+    loadingScreen.addEventListener('click', dismissLoading);
+    document.addEventListener('keydown', onKeyDown);
+</script>
+
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+    const gestureNameEl   = document.getElementById('gesture-name-display');
+    const confPctEl       = document.getElementById('conf-pct-text');
+    const confBarEl       = document.getElementById('conf-bar-fill');
+    const methodBadgeEl   = document.getElementById('method-badge');
+    const scanPlaceholder = document.getElementById('scan-placeholder');
+    const gestureImg      = document.getElementById('gesture-img');
+
+    let hideImageTimer = null;
+    const audioEl      = new Audio();
+    const BASE         = 'http://127.0.0.1:5001';
+
+    // ── Status dots ──
+    const dotHands   = document.getElementById('dot-hands');
+    const dotAudio   = document.getElementById('dot-audio');
+    const lblHands   = document.getElementById('label-hands');
+    const lblAudio   = document.getElementById('label-audio');
+    let handsOffTimer = null;
+
+    function setHandsDot(on) {
+        dotHands.className = on ? 'dot-on' : 'dot-off';
+        lblHands.style.color = on ? '#A8B085' : 'rgba(164,176,133,.32)';
+        if (on && handsOffTimer) { clearTimeout(handsOffTimer); handsOffTimer = null; }
+    }
+    function setAudioDot(on) {
+        dotAudio.className = on ? 'dot-on' : 'dot-off';
+        lblAudio.style.color = on ? '#A8B085' : 'rgba(164,176,133,.32)';
+    }
+
+    function resetReadout() {
+        if (gestureNameEl) gestureNameEl.textContent = '---';
+        if (confPctEl)     confPctEl.textContent     = '0%';
+        if (confBarEl)     confBarEl.style.width     = '0%';
+        if (methodBadgeEl) methodBadgeEl.textContent = '---';
+    }
+
+    function showGestureImage(imageUrl, audioUrl = null) {
+        if (!imageUrl) return;
+        if (hideImageTimer) { clearTimeout(hideImageTimer); hideImageTimer = null; }
+        gestureImg.src                = BASE + imageUrl;
+        gestureImg.style.display      = 'block';
+        scanPlaceholder.style.display = 'none';
+
+        if (audioUrl) {
+            playGestureAudio(BASE + audioUrl);
+        } else {
+            hideImageTimer = setTimeout(() => {
+                gestureImg.style.display      = 'none';
+                scanPlaceholder.style.display = 'block';
+                hideImageTimer = null;
+                resetReadout();
+            }, 3000);
+        }
+    }
+
+    function playGestureAudio(url) {
+        audioEl.pause();
+        audioEl.src = url;
+        audioEl.load();
+        audioEl.play().catch(e => console.warn('[AUDIO]', e));
+        setAudioDot(true);
+        audioEl.onended = () => {
+            setAudioDot(false);
+            gestureImg.style.display      = 'none';
+            scanPlaceholder.style.display = 'block';
+            resetReadout();
+        };
+        audioEl.onerror = () => {
+            setAudioDot(false);
+            hideImageTimer = setTimeout(() => {
+                gestureImg.style.display      = 'none';
+                scanPlaceholder.style.display = 'block';
+                resetReadout();
+            }, 3000);
+        };
+    }
+
+    // ── Socket.IO ──
+    const socket = io(BASE);
+    socket.on('connect',    () => console.log('[WS] Connected'));
+    socket.on('disconnect', () => console.log('[WS] Disconnected'));
+
+    // ── Gesture events ──
+    socket.on('gesture', data => {
+        setHandsDot(true);
+        if (handsOffTimer) clearTimeout(handsOffTimer);
+        handsOffTimer = setTimeout(() => setHandsDot(false), 2000);
+
+        if (gestureNameEl) gestureNameEl.textContent = data.name.toUpperCase().replace(/_/g,' ');
+        if (confPctEl)     confPctEl.textContent     = data.confidence + '%';
+        if (confBarEl)     confBarEl.style.width     = data.confidence + '%';
+        if (methodBadgeEl) methodBadgeEl.textContent = (data.method || 'rule').toUpperCase();
+
+        showGestureImage(data.image_url, data.audio_url);
+    });
+
+    // ── Real stats from backend ──
+    socket.on('stats', data => {
+        const fpsTick  = document.getElementById('fps-ticker');
+        const fpsTick2 = document.getElementById('fps-ticker2');
+        const latTick  = document.getElementById('latency-ticker');
+        const latTick2 = document.getElementById('latency-ticker2');
+        const fpsCam   = document.getElementById('cam-fps-display');
+        const latCam   = document.getElementById('cam-latency-display');
+
+        const fpsStr = `FPS: ${data.fps}`;
+        const latStr = `LATENCY: ${data.latency_ms}MS`;
+
+        if (fpsTick)  fpsTick.textContent  = fpsStr;
+        if (fpsTick2) fpsTick2.textContent  = fpsStr;
+        if (latTick)  latTick.textContent  = latStr;
+        if (latTick2) latTick2.textContent  = latStr;
+        if (fpsCam)   fpsCam.textContent   = data.fps + ' FPS';
+        if (latCam)   latCam.textContent   = data.latency_ms + ' MS';
+    });
+
+    // ── Camera error ──
+    socket.on('camera_error', data => {
+        const banner = document.getElementById('cam-error-banner');
+        if (banner) { banner.textContent = '⚠ ' + data.msg; banner.classList.add('show'); }
+    });
+
+    // ── Retrain result ──
+    socket.on('retrain_result', data => {
+        const btn = document.getElementById('retrain-btn');
+        if (btn) btn.classList.remove('retraining');
+        showGestureStatus(data.status === 'ok'
+            ? '✓ RETRAIN COMPLETE — CLASSES: ' + (data.classes || []).join(', ')
+            : '✗ RETRAIN FAILED: ' + data.msg, data.status === 'ok');
+    });
+
+    // ── Recording events ──
+    socket.on('record_started', data => {
+        showGestureStatus('● RECORDING: ' + data.name.toUpperCase() + ' — HOLD GESTURE STEADY', false);
+    });
+    socket.on('record_progress', data => {
+        const fill = document.getElementById('record-progress-fill');
+        const stat = document.getElementById('record-status-text');
+        const pct  = Math.round((data.progress / data.total) * 100);
+        if (fill) fill.style.width = pct + '%';
+        if (stat) stat.textContent = `RECORDING: ${data.progress}/${data.total} (${pct}%)`;
+    });
+    socket.on('record_done', data => {
+        closeRecordModal();
+        loadGestures();
+        updateLegend();
+        showGestureStatus('✓ GESTURE "' + data.name.toUpperCase() + '" SAVED SUCCESSFULLY', true);
+    });
+</script>
+
+<script>
+    /* ════════════════════════════════════════════
+       CUSTOM GESTURES PAGE LOGIC
+    ════════════════════════════════════════════ */
+
+    // ── Emoji input sync ──
+    function syncEmojiPreview(val) {
+        selectedEmoji = val.trim() || '👋';
+    }
+
+    let selectedEmoji = '👋';
+    let selectedGestureType = 'single';
+
+    // Custom gesture store: {name, emoji, type}
+    const customGestureStore = JSON.parse(localStorage.getItem('ishara_custom_gestures') || '[]');
+
+    function saveCustomGestureStore() {
+        localStorage.setItem('ishara_custom_gestures', JSON.stringify(customGestureStore));
+    }
+
+
+    function selectGestureType(type) {
+        selectedGestureType = type;
+        document.getElementById('type-single').classList.toggle('selected', type==='single');
+        document.getElementById('type-combo').classList.toggle('selected', type==='combo');
+    }
+
+    function updateLegend() {
+        const singleWrap = document.getElementById('legend-custom-single-wrap');
+        const comboWrap  = document.getElementById('legend-custom-combo-wrap');
+        const singleCont = document.getElementById('legend-custom-single');
+        const comboCont  = document.getElementById('legend-custom-combo');
+        if (!singleCont || !comboCont) return;
+
+        const singles = customGestureStore.filter(g => g.type === 'single');
+        const combos  = customGestureStore.filter(g => g.type === 'combo');
+
+        if (singleWrap) singleWrap.style.display = singles.length ? 'block' : 'none';
+        if (comboWrap)  comboWrap.style.display  = combos.length  ? 'block' : 'none';
+
+        singleCont.innerHTML = singles.map(g =>
+            `<div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);">
+                <span class="gesture-emoji">${g.emoji}</span>
+                <span style="font-size:8px;letter-spacing:.1em;">${g.name.toUpperCase().replace(/_/g,'_')}</span>
+            </div>`
+        ).join('');
+
+        comboCont.innerHTML = combos.map(g =>
+            `<div style="display:flex;align-items:center;gap:8px;color:rgba(223,255,0,.6);">
+                <span class="gesture-emoji">${g.emoji}</span>
+                <span style="font-size:8px;letter-spacing:.1em;">${g.name.toUpperCase().replace(/_/g,'_')}</span>
+            </div>`
+        ).join('');
+    }
+
+    function showGestureStatus(msg, ok = true) {
+        const el = document.getElementById('gestures-status');
+        if (!el) return;
+        el.style.display = 'block';
+        el.style.color   = ok ? 'rgba(223,255,0,.6)' : 'rgba(255,62,62,.8)';
+        el.textContent   = msg;
+        setTimeout(() => { el.style.display = 'none'; }, 5000);
+    }
+
+    function loadGestures() {
+        const grid  = document.getElementById('gestures-grid');
+        const count = document.getElementById('gesture-count');
+        if (!grid) return;
+
+        grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:180px;color:rgba(223,255,0,.2);font-size:9px;letter-spacing:.2em;">LOADING...</div>';
+
+        fetch(BASE + '/gestures')
+            .then(r => r.json())
+            .then(data => {
+                const entries = Object.entries(data);
+                if (count) count.textContent = entries.length;
+
+                if (entries.length === 0) {
+                    grid.innerHTML = '<div style="grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;height:220px;gap:14px;">'
+                        + '<span class="material-symbols-outlined" style="font-size:40px;color:rgba(223,255,0,.15);">gesture</span>'
+                        + '<div style="font-size:9px;color:rgba(223,255,0,.2);letter-spacing:.2em;text-transform:uppercase;">NO CUSTOM GESTURES YET</div>'
+                        + '<div style="font-size:8px;color:rgba(223,255,0,.12);letter-spacing:.12em;">Click "NEW GESTURE" to record one</div>'
+                        + '</div>';
+                    return;
+                }
+
+                grid.innerHTML = entries.map(([name, samples]) => {
+                    const stored = customGestureStore.find(g => g.name === name);
+                    const emoji  = stored ? stored.emoji : '👋';
+                    const type   = stored ? stored.type  : 'single';
+                    return `
+                    <div class="gesture-card">
+                        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                            <span style="font-size:22px;">${emoji}</span>
+                            <div>
+                                <div class="gesture-card-name">${name.replace(/_/g,' ')}</div>
+                                <div style="font-size:7px;color:rgba(223,255,0,.3);letter-spacing:.12em;text-transform:uppercase;">${type.toUpperCase()}_GESTURE</div>
+                            </div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="material-symbols-outlined" style="font-size:11px;color:rgba(223,255,0,.3);">model_training</span>
+                            <div class="gesture-card-count">${samples} SAMPLES</div>
+                        </div>
+                        <div style="height:2px;background:#111;overflow:hidden;">
+                            <div style="height:100%;background:rgba(223,255,0,.35);width:${Math.min(100,(samples/60)*100)}%;"></div>
+                        </div>
+                        <div style="font-size:7px;color:rgba(223,255,0,.25);letter-spacing:.1em;">${samples>=60?'TRAINING READY':'NEEDS '+(60-samples)+' MORE SAMPLES'}</div>
+                        <button class="gesture-card-delete" onclick="deleteGesture('${name}')">
+                            <span class="material-symbols-outlined" style="font-size:10px;vertical-align:middle;">delete</span>
+                            DELETE
+                        </button>
+                    </div>
+                `}).join('');
+            })
+            .catch(() => {
+                grid.innerHTML = '<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:center;height:180px;color:rgba(255,62,62,.5);font-size:9px;letter-spacing:.2em;">BACKEND NOT REACHABLE — START main.py</div>';
+            });
+    }
+
+    function deleteGesture(name) {
+        if (!confirm(`Delete gesture "${name}"? This cannot be undone.`)) return;
+        fetch(BASE + '/gestures/' + name, { method: 'DELETE' })
+            .then(r => r.json())
+            .then(d => {
+                if (d.deleted) {
+                    // Remove from local store + update legend
+                    const idx = customGestureStore.findIndex(g => g.name === name);
+                    if (idx !== -1) customGestureStore.splice(idx, 1);
+                    saveCustomGestureStore();
+                    updateLegend();
+                    loadGestures();
+                    showGestureStatus('✓ DELETED: ' + name.toUpperCase(), true);
+                } else {
+                    showGestureStatus('✗ DELETE FAILED: ' + (d.error||'unknown'), false);
+                }
+            })
+            .catch(() => showGestureStatus('✗ NETWORK ERROR', false));
+    }
+
+    function openRecordModal() {
+        selectedEmoji = '👋';
+        selectedGestureType = 'single';
+        document.getElementById('record-name-input').value = '';
+        document.getElementById('record-status-text').textContent = 'Hold the gesture in front of the camera once recording starts.';
+        document.getElementById('record-progress-fill').style.width = '0%';
+        document.getElementById('record-start-btn').disabled = false;
+        selectGestureType('single');
+        const emojiInput = document.getElementById('record-emoji-input');
+        if (emojiInput) emojiInput.value = '';
+        selectedEmoji = '👋';
+        document.getElementById('record-modal').classList.add('open');
+    }
+
+    function closeRecordModal() {
+        document.getElementById('record-modal').classList.remove('open');
+    }
+
+    function startWebRecord() {
+        const raw  = document.getElementById('record-name-input').value.trim().toLowerCase().replace(/\s+/g,'_');
+        if (!raw) { alert('Enter a gesture name first.'); return; }
+        const emojiVal = (document.getElementById('record-emoji-input').value.trim() || '👋');
+        selectedEmoji  = emojiVal;
+
+        document.getElementById('record-start-btn').disabled = true;
+        document.getElementById('record-status-text').textContent = 'Sending request to backend...';
+
+        fetch(BASE + '/gestures/record', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({name: raw})
+        })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'recording_queued') {
+                // Save to local store for legend & card display
+                const existing = customGestureStore.findIndex(g => g.name === raw);
+                if (existing === -1) {
+                    customGestureStore.push({ name: raw, emoji: selectedEmoji, type: selectedGestureType });
+                } else {
+                    customGestureStore[existing].emoji = selectedEmoji;
+                    customGestureStore[existing].type  = selectedGestureType;
+                }
+                saveCustomGestureStore();
+                updateLegend();
+                document.getElementById('record-status-text').textContent = `Queued! Hold "${raw}" gesture — recording starts shortly.`;
+            } else {
+                document.getElementById('record-status-text').textContent = 'Error: ' + (d.error||'unknown');
+                document.getElementById('record-start-btn').disabled = false;
+            }
+        })
+        .catch(() => {
+            document.getElementById('record-status-text').textContent = 'Backend not reachable.';
+            document.getElementById('record-start-btn').disabled = false;
+        });
+    }
+
+    function triggerRetrain() {
+        const btn = document.getElementById('retrain-btn');
+        if (btn) btn.classList.add('retraining');
+        showGestureStatus('⟳ RETRAINING IN PROGRESS — PLEASE WAIT...', true);
+        fetch(BASE + '/retrain', {method:'POST'})
+            .then(r => r.json())
+            .then(d => { if (d.error) { if (btn) btn.classList.remove('retraining'); showGestureStatus('✗ ' + d.error, false); } })
+            .catch(() => { if (btn) btn.classList.remove('retraining'); showGestureStatus('✗ BACKEND NOT REACHABLE', false); });
+    }
+
+    // Close record modal on backdrop click
+    document.getElementById('record-modal').addEventListener('click', e => {
+        if (e.target === document.getElementById('record-modal')) closeRecordModal();
+    });
+
+    // Initialize legend from stored data on load
+    updateLegend();
+</script>
+</body>
+</html>
