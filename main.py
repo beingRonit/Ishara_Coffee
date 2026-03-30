@@ -86,6 +86,35 @@ _ml_model_ref:   Any = None
 _retrain_lock = threading.Lock()
 _record_request: dict = {}
 
+CUSTOM_ASSETS_FILE = "custom_assets.json"
+_custom_assets: dict = {}
+_custom_assets_lock = threading.Lock()
+
+
+def _load_custom_assets() -> dict:
+    if os.path.exists(CUSTOM_ASSETS_FILE):
+        try:
+            with open(CUSTOM_ASSETS_FILE, "r") as f:
+                data = json.load(f)
+            log.info("Custom assets: loaded %d entr(ies) from %s", len(data), CUSTOM_ASSETS_FILE)
+            return data
+        except Exception as exc:
+            log.warning("Custom assets: failed to load: %s", exc)
+    return {}
+
+
+def _save_custom_assets(assets: dict) -> None:
+    try:
+        with open(CUSTOM_ASSETS_FILE, "w") as f:
+            json.dump(assets, f, indent=2)
+        log.info("Custom assets: saved to %s", CUSTOM_ASSETS_FILE)
+    except Exception as exc:
+        log.error("Custom assets: failed to save: %s", exc)
+
+
+# Load on module startup
+_custom_assets = _load_custom_assets()
+
 if FLASK_AVAILABLE:
     flask_app = Flask(__name__)
     socketio  = SocketIO(flask_app, cors_allowed_origins="*", async_mode='threading')
@@ -204,6 +233,48 @@ if FLASK_AVAILABLE:
 
         threading.Thread(target=do_retrain, daemon=True).start()
         return jsonify({"status": "retraining_started"})
+
+    @flask_app.route('/gestures/upload', methods=['POST'])
+    def upload_gesture_assets():
+        global _custom_assets
+        name = (request.form.get("name") or "").strip().lower().replace(" ", "_")
+        if not name:
+            return jsonify({"error": "name required"}), 400
+
+        os.makedirs("assets/images", exist_ok=True)
+        os.makedirs("assets/audio",  exist_ok=True)
+
+        saved = {}
+        image_file = request.files.get("image")
+        if image_file and image_file.filename:
+            ext      = os.path.splitext(image_file.filename)[1].lower()
+            img_path = f"assets/images/{name}{ext}"
+            try:
+                image_file.save(img_path)
+                saved["image"] = img_path
+                log.info("Upload: image saved → %s", img_path)
+            except Exception as exc:
+                log.error("Upload: image save failed: %s", exc)
+
+        audio_file = request.files.get("audio")
+        if audio_file and audio_file.filename:
+            ext       = os.path.splitext(audio_file.filename)[1].lower()
+            aud_path  = f"assets/audio/{name}{ext}"
+            try:
+                audio_file.save(aud_path)
+                saved["audio"] = aud_path
+                log.info("Upload: audio saved → %s", aud_path)
+            except Exception as exc:
+                log.error("Upload: audio save failed: %s", exc)
+
+        if saved:
+            with _custom_assets_lock:
+                if name not in _custom_assets:
+                    _custom_assets[name] = {}
+                _custom_assets[name].update(saved)
+                _save_custom_assets(_custom_assets)
+
+        return jsonify({"status": "ok", "name": name, "saved": saved})
 
     def run_socketio():
         socketio.run(flask_app, host="127.0.0.1", port=5001, debug=False, use_reloader=False)
@@ -763,7 +834,9 @@ def main():
 
             if socketio is not None:
                 try:
-                    all_assets  = {**cfg.BUILTIN_ASSETS, **cfg.COMBO_ASSETS}
+                    with _custom_assets_lock:
+                        merged_custom = dict(_custom_assets)
+                    all_assets  = {**cfg.BUILTIN_ASSETS, **cfg.COMBO_ASSETS, **merged_custom}
                     asset_entry = all_assets.get(triggered_name, {})
                     socketio.emit("gesture", {
                         "name":       triggered_name,

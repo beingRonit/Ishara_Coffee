@@ -236,9 +236,13 @@
     #record-modal {
         display:none; position:fixed; inset:0; z-index:400;
         background:rgba(0,0,0,0.88); align-items:center; justify-content:center;
-        backdrop-filter:blur(6px);
+        backdrop-filter:blur(6px); padding:16px;
     }
     #record-modal.open { display:flex; }
+    /* landscape modal box overrides modal-box defaults */
+    #record-modal .modal-box {
+        max-height:90vh; overflow:hidden; display:flex; flex-direction:column;
+    }
     .progress-bar-outer { height:4px; background:#111; position:relative; overflow:hidden; }
     .progress-bar-inner { height:100%; background:#DFFF00; box-shadow:0 0 8px #DFFF00; transition:width 0.2s linear; width:0%; }
 
@@ -286,6 +290,115 @@
     }
     .page-glitch-out { animation:glitch-out 0.5s ease-in forwards; pointer-events:none; }
     .page-glitch-in  { animation:glitch-in  0.5s ease-out forwards; }
+
+    /* ── CUSTOM DELETE CONFIRM MODAL ── */
+    #delete-confirm-modal {
+        display:none; position:fixed; inset:0; z-index:450;
+        background:rgba(0,0,0,0.92); align-items:center; justify-content:center;
+        backdrop-filter:blur(8px);
+    }
+    #delete-confirm-modal.open { display:flex; }
+    .delete-confirm-box {
+        background:#080808;
+        border:1px solid rgba(255,62,62,0.4);
+        max-width:400px; width:92%; padding:32px; position:relative;
+        box-shadow: 0 0 40px rgba(255,62,62,0.08), 0 0 80px rgba(255,62,62,0.04);
+        background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' stroke='%23FF3E3E' stroke-width='2' stroke-dasharray='14%2c 10' stroke-dashoffset='0' stroke-linecap='square' opacity='0.25'/%3e%3c/svg%3e");
+    }
+    .delete-confirm-icon {
+        font-size:36px; display:block; margin-bottom:16px; color:#ff3e3e;
+        text-shadow: 0 0 20px rgba(255,62,62,0.6), 0 0 40px rgba(255,62,62,0.3);
+    }
+    @keyframes warn-pulse {
+        0%,100%{text-shadow:0 0 10px rgba(255,62,62,.5),0 0 20px rgba(255,62,62,.3)}
+        50%{text-shadow:0 0 20px rgba(255,62,62,.9),0 0 40px rgba(255,62,62,.5),0 0 60px rgba(255,62,62,.2)}
+    }
+    .delete-confirm-icon { animation: warn-pulse 1.5s ease-in-out infinite; }
+
+    /* ── RECORD MODAL CAMERA PREVIEW + COUNTDOWN ── */
+    #record-cam-preview {
+        position:relative; background:#000; overflow:hidden;
+        min-height:320px;  /* floor so the live feed has breathing room */
+    }
+    #record-cam-preview img { width:100%; height:100%; object-fit:cover; display:block; }
+
+    #countdown-overlay {
+        display:none; position:absolute; inset:0; z-index:10;
+        background:rgba(0,0,0,0.72); align-items:center; justify-content:center; flex-direction:column;
+        backdrop-filter:blur(2px);
+    }
+    #countdown-overlay.active { display:flex; }
+
+    @keyframes cd-pop {
+        0%   { transform:scale(1.8); opacity:0; }
+        20%  { transform:scale(1.0); opacity:1; }
+        80%  { transform:scale(1.0); opacity:1; }
+        100% { transform:scale(0.6); opacity:0; }
+    }
+    #countdown-number {
+        font-family:'JetBrains Mono',monospace; font-weight:900;
+        font-size:96px; color:#DFFF00; line-height:1;
+        text-shadow:0 0 30px rgba(223,255,0,.8),0 0 60px rgba(223,255,0,.4);
+        animation: cd-pop 1s ease-in-out forwards;
+    }
+    #countdown-number.rec-state {
+        font-size:36px; color:#ff3e3e; letter-spacing:.3em;
+        text-shadow:0 0 20px rgba(255,62,62,.8);
+        animation: none;
+    }
+    #countdown-label {
+        font-size:9px; color:rgba(223,255,0,.5); letter-spacing:.3em;
+        text-transform:uppercase; margin-top:8px; font-family:'JetBrains Mono',monospace;
+    }
+
+    /* ── RECORD RESULT OVERLAY (success / fail) ── */
+    #record-result-overlay {
+        display:none; position:absolute; inset:0; z-index:20;
+        align-items:center; justify-content:center; flex-direction:column;
+        gap:10px;
+    }
+    #record-result-overlay.show { display:flex; }
+    #record-result-overlay.success { background:rgba(0,0,0,0.82); }
+    #record-result-overlay.failure { background:rgba(0,0,0,0.85); }
+
+    @keyframes result-pop {
+        0%{transform:scale(0.5);opacity:0} 60%{transform:scale(1.1);opacity:1} 100%{transform:scale(1);opacity:1}
+    }
+    .result-icon-text {
+        font-family:'JetBrains Mono',monospace; font-weight:900; font-size:52px; line-height:1;
+        animation: result-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+    .result-icon-text.ok  {
+        color:#DFFF00;
+        text-shadow:0 0 20px rgba(223,255,0,.8),0 0 50px rgba(223,255,0,.4);
+    }
+    .result-icon-text.fail {
+        color:#ff3e3e;
+        text-shadow:0 0 20px rgba(255,62,62,.8),0 0 50px rgba(255,62,62,.4);
+    }
+    .result-msg {
+        font-family:'JetBrains Mono',monospace; font-size:9px; letter-spacing:.22em;
+        text-transform:uppercase; text-align:center; padding:0 16px;
+    }
+    .result-msg.ok   { color:rgba(223,255,0,.7); }
+    .result-msg.fail { color:rgba(255,62,62,.7); }
+
+    /* ── UPLOAD DROP ZONES ── */
+    .upload-zone {
+        flex:1; border:1px dashed rgba(223,255,0,0.25); padding:14px 10px;
+        display:flex; flex-direction:column; align-items:center; justify-content:center;
+        gap:6px; cursor:pointer; transition:all 0.2s; position:relative; background:#050505;
+        min-height:72px;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+        border-color:rgba(223,255,0,0.6); background:rgba(223,255,0,0.03);
+    }
+    .upload-zone input[type="file"] { display:none; }
+    .upload-zone-icon { font-size:18px; }
+    .upload-zone-label { font-size:7px; color:#A8B085; letter-spacing:.14em; text-transform:uppercase; text-align:center; }
+    .upload-zone-filename { font-size:7px; color:#DFFF00; letter-spacing:.1em; text-align:center; word-break:break-all; margin-top:2px; }
+    .upload-zone-hint { font-size:6px; color:rgba(164,176,133,.35); letter-spacing:.1em; text-transform:uppercase; }
+    .upload-zone.has-file { border-color:rgba(223,255,0,0.45); background:rgba(223,255,0,0.04); }
 
     /* ── BACK ARROW BUTTON ── */
     #back-btn {
@@ -392,66 +505,187 @@
     </div>
 </div>
 
-<!-- RECORD MODAL (gestures page) -->
+<!-- RECORD MODAL (gestures page) — LANDSCAPE LAYOUT -->
 <div id="record-modal">
-    <div class="modal-box" style="max-width:460px;">
-        <div style="font-size:9px;color:#DFFF00;letter-spacing:.3em;text-transform:uppercase;margin-bottom:20px;border-bottom:1px solid rgba(223,255,0,.1);padding-bottom:14px;">RECORD NEW GESTURE</div>
+    <!-- wide landscape box: camera left | controls right -->
+    <div class="modal-box" style="max-width:860px;width:95vw;padding:0;overflow:hidden;display:flex;flex-direction:column;">
 
-        <!-- GESTURE TYPE -->
-        <div style="font-size:8px;color:#A8B085;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;">GESTURE TYPE</div>
-        <div class="type-toggle">
-            <button class="type-btn selected" id="type-single" onclick="selectGestureType('single')">
-                <span style="font-size:14px;display:block;margin-bottom:4px;">✋</span>
-                SINGLE
-            </button>
-            <button class="type-btn" id="type-combo" onclick="selectGestureType('combo')">
-                <span style="font-size:14px;display:block;margin-bottom:4px;">🤜🤛</span>
-                COMBO
-            </button>
-        </div>
-
-        <!-- EMOJI + NAME side by side -->
-        <div style="display:flex;gap:12px;margin-bottom:16px;">
-            <!-- Emoji -->
-            <div style="display:flex;flex-direction:column;gap:6px;">
-                <div style="font-size:8px;color:#A8B085;letter-spacing:.1em;text-transform:uppercase;">EMOJI</div>
-                <input id="record-emoji-input" type="text" maxlength="2"
-                       style="width:56px;background:#000;border:1px solid rgba(223,255,0,0.3);color:#DFFF00;
-                              font-family:'JetBrains Mono',monospace;font-size:20px;padding:7px 8px;
-                              outline:none;text-align:center;"
-                       placeholder=":)"
-                       oninput="syncEmojiPreview(this.value)"/>
+        <!-- ── HEADER BAR ── -->
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    padding:12px 20px;border-bottom:1px solid rgba(223,255,0,.1);flex-shrink:0;">
+            <div style="font-size:9px;color:#DFFF00;letter-spacing:.3em;text-transform:uppercase;">
+                RECORD NEW GESTURE
             </div>
-            <!-- Gesture name -->
-            <div style="display:flex;flex-direction:column;gap:6px;flex:1;">
-                <div style="font-size:8px;color:#A8B085;letter-spacing:.1em;text-transform:uppercase;">GESTURE NAME (no spaces)</div>
-                <input id="record-name-input" type="text"
-                       style="width:100%;background:#000;border:1px solid rgba(223,255,0,0.3);color:#DFFF00;
-                              font-family:'JetBrains Mono',monospace;font-size:12px;padding:8px 12px;
-                              outline:none;letter-spacing:.1em;"
-                       placeholder="e.g. spider_man"/>
-            </div>
-        </div>
-
-        <!-- STATUS / PROGRESS -->
-        <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.15em;margin-bottom:8px;" id="record-status-text">
-            Hold the gesture in front of the camera once recording starts.
-        </div>
-        <div class="progress-bar-outer" id="record-progress-bar" style="margin-bottom:18px;">
-            <div class="progress-bar-inner" id="record-progress-fill"></div>
-        </div>
-
-        <div style="display:flex;gap:10px;">
-            <button id="record-start-btn" onclick="startWebRecord()"
-                    style="flex:1;padding:9px;background:rgba(223,255,0,0.07);border:1px solid rgba(223,255,0,0.3);
-                           color:#DFFF00;font-family:'JetBrains Mono',monospace;font-size:9px;
-                           letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">
-                START RECORDING
-            </button>
             <button onclick="closeRecordModal()"
-                    style="padding:9px 16px;background:transparent;border:1px solid rgba(223,255,0,0.1);
+                    style="display:flex;align-items:center;gap:4px;padding:4px 10px;background:transparent;
+                           border:1px solid rgba(223,255,0,0.1);color:#A8B085;
+                           font-family:'JetBrains Mono',monospace;font-size:8px;
+                           letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(223,255,0,0.4)';this.style.color='#DFFF00';"
+                    onmouseout="this.style.borderColor='rgba(223,255,0,0.1)';this.style.color='#A8B085';">
+                <span class="material-symbols-outlined" style="font-size:12px;">close</span>
+                CANCEL
+            </button>
+        </div>
+
+        <!-- ── TWO-COLUMN BODY ── -->
+        <div style="display:flex;flex-direction:row;flex:1;min-height:0;">
+
+            <!-- LEFT: Camera Preview (fills full left column) -->
+            <div id="record-cam-preview" style="flex:0 0 55%;position:relative;background:#000;
+                                                border-right:1px solid rgba(223,255,0,0.1);">
+                <img id="record-cam-stream" src="" alt="Camera Feed"
+                     style="width:100%;height:100%;object-fit:cover;opacity:0.8;display:block;"/>
+                <!-- corner decorations -->
+                <div class="corner tl" style="width:14px;height:14px;border-width:2px;"></div>
+                <div class="corner tr" style="width:14px;height:14px;border-width:2px;"></div>
+                <div class="corner bl" style="width:14px;height:14px;border-width:2px;"></div>
+                <div class="corner br" style="width:14px;height:14px;border-width:2px;"></div>
+                <!-- crosshair -->
+                <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;">
+                    <div style="width:40px;height:1px;background:rgba(223,255,0,.3);"></div>
+                    <div style="width:1px;height:40px;background:rgba(223,255,0,.3);position:absolute;top:-20px;left:20px;"></div>
+                </div>
+                <!-- REC indicator -->
+                <div style="position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:6px;">
+                    <div style="width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulse 1.2s ease-in-out infinite;"></div>
+                    <span style="font-size:7px;color:rgba(239,68,68,.8);letter-spacing:.2em;font-family:'JetBrains Mono',monospace;">LIVE</span>
+                </div>
+                <!-- countdown overlay -->
+                <div id="countdown-overlay">
+                    <div id="countdown-number">5</div>
+                    <div id="countdown-label">GET INTO POSITION</div>
+                </div>
+                <!-- result overlay (success / fail) -->
+                <div id="record-result-overlay">
+                    <div id="record-result-icon" class="result-icon-text ok">✓</div>
+                    <div id="record-result-msg"  class="result-msg ok"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT: Controls Panel -->
+            <div style="flex:1;display:flex;flex-direction:column;padding:20px;gap:14px;
+                        overflow-y:auto;background:#080808;min-width:0;">
+
+                <!-- GESTURE TYPE -->
+                <div>
+                    <div style="font-size:7px;color:rgba(223,255,0,.38);letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px;">GESTURE TYPE</div>
+                    <div class="type-toggle" style="margin-bottom:0;">
+                        <button class="type-btn selected" id="type-single" onclick="selectGestureType('single')">
+                            <span style="font-size:13px;display:block;margin-bottom:3px;">✋</span>SINGLE
+                        </button>
+                        <button class="type-btn" id="type-combo" onclick="selectGestureType('combo')">
+                            <span style="font-size:13px;display:block;margin-bottom:3px;">🤜🤛</span>COMBO
+                        </button>
+                    </div>
+                </div>
+
+                <!-- EMOJI + NAME -->
+                <div>
+                    <div style="font-size:7px;color:rgba(223,255,0,.38);letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px;">GESTURE DETAILS</div>
+                    <div style="display:flex;gap:10px;">
+                        <input id="record-emoji-input" type="text" maxlength="2"
+                               style="width:52px;background:#000;border:1px solid rgba(223,255,0,0.3);color:#DFFF00;
+                                      font-family:'JetBrains Mono',monospace;font-size:20px;padding:7px 6px;
+                                      outline:none;text-align:center;flex-shrink:0;"
+                               placeholder=":)" oninput="syncEmojiPreview(this.value)"/>
+                        <input id="record-name-input" type="text"
+                               style="flex:1;background:#000;border:1px solid rgba(223,255,0,0.3);color:#DFFF00;
+                                      font-family:'JetBrains Mono',monospace;font-size:11px;padding:8px 10px;
+                                      outline:none;letter-spacing:.08em;"
+                               placeholder="e.g. spider_man"/>
+                    </div>
+                </div>
+
+                <!-- UPLOAD ZONES -->
+                <div>
+                    <div style="font-size:7px;color:rgba(223,255,0,.38);letter-spacing:.2em;text-transform:uppercase;margin-bottom:8px;">ATTACH ASSETS (optional)</div>
+                    <div style="display:flex;gap:8px;">
+                        <div class="upload-zone" id="image-drop-zone"
+                             onclick="document.getElementById('image-file-input').click()"
+                             ondragover="handleDragOver(event,'image-drop-zone')"
+                             ondragleave="handleDragLeave('image-drop-zone')"
+                             ondrop="handleDrop(event,'image')">
+                            <input type="file" id="image-file-input" accept=".jpg,.jpeg,.png" onchange="handleFileSelect(event,'image')"/>
+                            <span class="upload-zone-icon">🖼</span>
+                            <div class="upload-zone-label">DROP IMAGE</div>
+                            <div class="upload-zone-hint">.jpg / .png</div>
+                            <div class="upload-zone-filename" id="image-filename" style="display:none;"></div>
+                        </div>
+                        <div class="upload-zone" id="audio-drop-zone"
+                             onclick="document.getElementById('audio-file-input').click()"
+                             ondragover="handleDragOver(event,'audio-drop-zone')"
+                             ondragleave="handleDragLeave('audio-drop-zone')"
+                             ondrop="handleDrop(event,'audio')">
+                            <input type="file" id="audio-file-input" accept=".mp3,.wav" onchange="handleFileSelect(event,'audio')"/>
+                            <span class="upload-zone-icon">🔊</span>
+                            <div class="upload-zone-label">DROP AUDIO</div>
+                            <div class="upload-zone-hint">.mp3 / .wav</div>
+                            <div class="upload-zone-filename" id="audio-filename" style="display:none;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STATUS + PROGRESS -->
+                <div style="margin-top:auto;">
+                    <div style="font-size:7px;color:rgba(223,255,0,.32);letter-spacing:.13em;margin-bottom:7px;" id="record-status-text">
+                        Hold the gesture in front of the camera once recording starts.
+                    </div>
+                    <div class="progress-bar-outer" id="record-progress-bar" style="margin-bottom:14px;">
+                        <div class="progress-bar-inner" id="record-progress-fill"></div>
+                    </div>
+                    <button id="record-start-btn" onclick="startWebRecord()"
+                            style="width:100%;padding:11px;background:rgba(223,255,0,0.07);
+                                   border:1px solid rgba(223,255,0,0.35);color:#DFFF00;
+                                   font-family:'JetBrains Mono',monospace;font-size:9px;
+                                   letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+                                   transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:8px;"
+                            onmouseover="this.style.background='rgba(223,255,0,0.12)';this.style.borderColor='rgba(223,255,0,0.7)';"
+                            onmouseout="this.style.background='rgba(223,255,0,0.07)';this.style.borderColor='rgba(223,255,0,0.35)';">
+                        <span class="material-symbols-outlined" style="font-size:14px;">radio_button_checked</span>
+                        START RECORDING
+                    </button>
+                </div>
+
+            </div><!-- end right controls -->
+        </div><!-- end two-col body -->
+    </div>
+</div>
+
+<!-- DELETE CONFIRM MODAL -->
+<div id="delete-confirm-modal">
+    <div class="delete-confirm-box">
+        <span class="material-symbols-outlined delete-confirm-icon">warning</span>
+        <div style="font-size:9px;color:#ff3e3e;letter-spacing:.3em;text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid rgba(255,62,62,0.15);padding-bottom:14px;">
+            CONFIRM_DELETE // IRREVERSIBLE
+        </div>
+        <div style="font-size:11px;color:#DFFF00;letter-spacing:.08em;margin-bottom:6px;font-weight:700;">
+            DELETE GESTURE?
+        </div>
+        <div style="font-size:9px;color:#A8B085;letter-spacing:.1em;margin-bottom:6px;">
+            Target: <span id="delete-confirm-name" style="color:#ff3e3e;letter-spacing:.14em;text-transform:uppercase;"></span>
+        </div>
+        <div style="font-size:8px;color:rgba(164,176,133,.4);letter-spacing:.1em;margin-bottom:24px;">
+            All KNN samples will be permanently erased.<br>This action cannot be undone.
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button id="delete-confirm-yes"
+                    style="flex:1;padding:10px;background:rgba(255,62,62,0.08);border:1px solid rgba(255,62,62,0.5);
+                           color:#ff3e3e;font-family:'JetBrains Mono',monospace;font-size:9px;
+                           letter-spacing:.18em;text-transform:uppercase;cursor:pointer;
+                           transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px;"
+                    onmouseover="this.style.background='rgba(255,62,62,0.15)';this.style.borderColor='#ff3e3e';"
+                    onmouseout="this.style.background='rgba(255,62,62,0.08)';this.style.borderColor='rgba(255,62,62,0.5)';">
+                <span class="material-symbols-outlined" style="font-size:12px;">delete_forever</span>
+                CONFIRM DELETE
+            </button>
+            <button id="delete-confirm-no"
+                    style="padding:10px 18px;background:transparent;border:1px solid rgba(223,255,0,0.15);
                            color:#A8B085;font-family:'JetBrains Mono',monospace;font-size:9px;
-                           letter-spacing:.14em;text-transform:uppercase;cursor:pointer;">
+                           letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+                           transition:all 0.2s;"
+                    onmouseover="this.style.borderColor='rgba(223,255,0,0.4)';this.style.color='#DFFF00';"
+                    onmouseout="this.style.borderColor='rgba(223,255,0,0.15)';this.style.color='#A8B085';">
                 CANCEL
             </button>
         </div>
@@ -1003,10 +1237,15 @@
         if (stat) stat.textContent = `RECORDING: ${data.progress}/${data.total} (${pct}%)`;
     });
     socket.on('record_done', data => {
-        closeRecordModal();
+        _recordingActive = false;
+        if (_noHandTimer) { clearTimeout(_noHandTimer); _noHandTimer = null; }
+        // Upload assets if any were attached
+        _uploadAssets(data.name);
+        _resetUploadZones();
         loadGestures();
         updateLegend();
         showGestureStatus('✓ GESTURE "' + data.name.toUpperCase() + '" SAVED SUCCESSFULLY', true);
+        _showRecordResult(true);
     });
 </script>
 
@@ -1129,13 +1368,128 @@
             });
     }
 
+    // ── No-Hand Watchdog (10s timeout) ──
+    let _noHandTimer = null;
+    let _recordingActive = false;
+
+    function _startNoHandWatchdog(gestureName) {
+        _recordingActive = true;
+        if (_noHandTimer) clearTimeout(_noHandTimer);
+        _noHandTimer = setTimeout(() => {
+            if (_recordingActive) {
+                _recordingActive = false;
+                _showRecordResult(false, 'NO HAND DETECTED');
+                document.getElementById('record-start-btn').disabled = false;
+            }
+        }, 10000);
+    }
+
+    function _showRecordResult(ok, extraMsg) {
+        const overlay  = document.getElementById('record-result-overlay');
+        const iconEl   = document.getElementById('record-result-icon');
+        const msgEl    = document.getElementById('record-result-msg');
+        const cdOverlay = document.getElementById('countdown-overlay');
+
+        if (cdOverlay) cdOverlay.classList.remove('active');
+
+        iconEl.className = 'result-icon-text ' + (ok ? 'ok' : 'fail');
+        iconEl.textContent = ok ? '✓' : '✗';
+        msgEl.className  = 'result-msg ' + (ok ? 'ok' : 'fail');
+        msgEl.textContent = ok
+            ? 'GESTURE CAPTURED'
+            : ('CAPTURE FAILED — ' + (extraMsg || ''));
+
+        overlay.className = 'show ' + (ok ? 'success' : 'failure');
+        overlay.classList.add('show');
+
+        if (ok) {
+            setTimeout(() => {
+                overlay.className = '';
+                closeRecordModal();
+            }, 2000);
+        } else {
+            setTimeout(() => { overlay.className = ''; }, 3500);
+        }
+    }
+
+    // ── Upload Drop Zone Logic ──
+    let _pendingImageFile = null;
+    let _pendingAudioFile = null;
+
+    function handleDragOver(e, zoneId) {
+        e.preventDefault();
+        document.getElementById(zoneId).classList.add('dragover');
+    }
+    function handleDragLeave(zoneId) {
+        document.getElementById(zoneId).classList.remove('dragover');
+    }
+    function handleDrop(e, type) {
+        e.preventDefault();
+        const zoneId = type === 'image' ? 'image-drop-zone' : 'audio-drop-zone';
+        document.getElementById(zoneId).classList.remove('dragover');
+        const file = e.dataTransfer.files[0];
+        if (file) _applyFile(file, type);
+    }
+    function handleFileSelect(e, type) {
+        const file = e.target.files[0];
+        if (file) _applyFile(file, type);
+    }
+    function _applyFile(file, type) {
+        const zoneId   = type === 'image' ? 'image-drop-zone'  : 'audio-drop-zone';
+        const nameEl   = document.getElementById(type === 'image' ? 'image-filename' : 'audio-filename');
+        const zone     = document.getElementById(zoneId);
+
+        if (type === 'image') _pendingImageFile = file;
+        else                  _pendingAudioFile = file;
+
+        zone.classList.add('has-file');
+        nameEl.style.display = 'block';
+        nameEl.textContent   = file.name.length > 22 ? file.name.slice(0,20) + '…' : file.name;
+    }
+
+    function _resetUploadZones() {
+        _pendingImageFile = null;
+        _pendingAudioFile = null;
+        ['image-drop-zone','audio-drop-zone'].forEach(id => {
+            const z = document.getElementById(id);
+            if (z) z.classList.remove('has-file','dragover');
+        });
+        const imgFn = document.getElementById('image-filename');
+        const audFn = document.getElementById('audio-filename');
+        if (imgFn) { imgFn.style.display='none'; imgFn.textContent=''; }
+        if (audFn) { audFn.style.display='none'; audFn.textContent=''; }
+        const imgInp = document.getElementById('image-file-input');
+        const audInp = document.getElementById('audio-file-input');
+        if (imgInp) imgInp.value = '';
+        if (audInp) audInp.value = '';
+    }
+
+    function _uploadAssets(gestureName) {
+        if (!_pendingImageFile && !_pendingAudioFile) return;
+        const fd = new FormData();
+        fd.append('name', gestureName);
+        if (_pendingImageFile) fd.append('image', _pendingImageFile);
+        if (_pendingAudioFile) fd.append('audio', _pendingAudioFile);
+        fetch(BASE + '/gestures/upload', { method:'POST', body:fd })
+            .then(r => r.json())
+            .then(d => console.log('[UPLOAD] Asset saved:', d))
+            .catch(e => console.warn('[UPLOAD] Failed:', e));
+    }
+
+    // ── Custom Delete Confirmation ──
+    let _pendingDeleteName = null;
+
     function deleteGesture(name) {
-        if (!confirm(`Delete gesture "${name}"? This cannot be undone.`)) return;
+        _pendingDeleteName = name;
+        document.getElementById('delete-confirm-name').textContent = name.replace(/_/g, ' ');
+        document.getElementById('delete-confirm-modal').classList.add('open');
+    }
+
+    function _executeDelete(name) {
         fetch(BASE + '/gestures/' + name, { method: 'DELETE' })
             .then(r => r.json())
             .then(d => {
                 if (d.deleted) {
-                    // Remove from local store + update legend
                     const idx = customGestureStore.findIndex(g => g.name === name);
                     if (idx !== -1) customGestureStore.splice(idx, 1);
                     saveCustomGestureStore();
@@ -1143,11 +1497,26 @@
                     loadGestures();
                     showGestureStatus('✓ DELETED: ' + name.toUpperCase(), true);
                 } else {
-                    showGestureStatus('✗ DELETE FAILED: ' + (d.error||'unknown'), false);
+                    showGestureStatus('✗ DELETE FAILED: ' + (d.error || 'unknown'), false);
                 }
             })
             .catch(() => showGestureStatus('✗ NETWORK ERROR', false));
     }
+
+    document.getElementById('delete-confirm-yes').addEventListener('click', () => {
+        document.getElementById('delete-confirm-modal').classList.remove('open');
+        if (_pendingDeleteName) { _executeDelete(_pendingDeleteName); _pendingDeleteName = null; }
+    });
+    document.getElementById('delete-confirm-no').addEventListener('click', () => {
+        document.getElementById('delete-confirm-modal').classList.remove('open');
+        _pendingDeleteName = null;
+    });
+    document.getElementById('delete-confirm-modal').addEventListener('click', e => {
+        if (e.target === document.getElementById('delete-confirm-modal')) {
+            document.getElementById('delete-confirm-modal').classList.remove('open');
+            _pendingDeleteName = null;
+        }
+    });
 
     function openRecordModal() {
         selectedEmoji = '👋';
@@ -1160,20 +1529,85 @@
         const emojiInput = document.getElementById('record-emoji-input');
         if (emojiInput) emojiInput.value = '';
         selectedEmoji = '👋';
+        // Reset upload zones
+        _resetUploadZones();
+        // Start camera preview in modal
+        const camStream = document.getElementById('record-cam-stream');
+        if (camStream) camStream.src = BASE + '/video_feed';
+        // Reset countdown overlay
+        const overlay = document.getElementById('countdown-overlay');
+        if (overlay) overlay.classList.remove('active');
         document.getElementById('record-modal').classList.add('open');
     }
 
     function closeRecordModal() {
         document.getElementById('record-modal').classList.remove('open');
+        // Stop camera preview stream
+        const camStream = document.getElementById('record-cam-stream');
+        if (camStream) camStream.src = '';
+        // Reset countdown overlay
+        const cdOverlay = document.getElementById('countdown-overlay');
+        if (cdOverlay) cdOverlay.classList.remove('active');
+        // Reset result overlay
+        const resOverlay = document.getElementById('record-result-overlay');
+        if (resOverlay) resOverlay.className = '';
+        // Reset state flags
+        _countdownActive = false;
+        _recordingActive = false;
+        if (_noHandTimer) { clearTimeout(_noHandTimer); _noHandTimer = null; }
+        // Reset progress bar + status text
+        const fill = document.getElementById('record-progress-fill');
+        const stat = document.getElementById('record-status-text');
+        if (fill) fill.style.width = '0%';
+        if (stat) stat.textContent = 'Hold the gesture in front of the camera once recording starts.';
+        const startBtn = document.getElementById('record-start-btn');
+        if (startBtn) startBtn.disabled = false;
     }
 
+    let _countdownActive = false;
+
     function startWebRecord() {
-        const raw  = document.getElementById('record-name-input').value.trim().toLowerCase().replace(/\s+/g,'_');
+        const raw = document.getElementById('record-name-input').value.trim().toLowerCase().replace(/\s+/g,'_');
         if (!raw) { alert('Enter a gesture name first.'); return; }
+        if (_countdownActive) return;
+
         const emojiVal = (document.getElementById('record-emoji-input').value.trim() || '👋');
-        selectedEmoji  = emojiVal;
+        selectedEmoji = emojiVal;
 
         document.getElementById('record-start-btn').disabled = true;
+        document.getElementById('record-status-text').textContent = 'Get into position...';
+
+        _countdownActive = true;
+        _runCountdown(5, raw);
+    }
+
+    function _runCountdown(n, gestureName) {
+        const overlay   = document.getElementById('countdown-overlay');
+        const numEl     = document.getElementById('countdown-number');
+        const labelEl   = document.getElementById('countdown-label');
+
+        overlay.classList.add('active');
+
+        if (n > 0) {
+            numEl.className = 'countdown-number';
+            numEl.textContent = n;
+            labelEl.textContent = 'GET INTO POSITION';
+            // Re-trigger animation by cloning
+            const fresh = numEl.cloneNode(true);
+            numEl.parentNode.replaceChild(fresh, numEl);
+            setTimeout(() => _runCountdown(n - 1, gestureName), 1000);
+        } else {
+            // Show REC● then fire request
+            const curNum = document.getElementById('countdown-number');
+            curNum.textContent = 'REC●';
+            curNum.className = 'countdown-number rec-state';
+            labelEl.textContent = 'RECORDING — HOLD STEADY';
+            _countdownActive = false;
+            _fireRecordRequest(gestureName);
+        }
+    }
+
+    function _fireRecordRequest(raw) {
         document.getElementById('record-status-text').textContent = 'Sending request to backend...';
 
         fetch(BASE + '/gestures/record', {
@@ -1184,7 +1618,6 @@
         .then(r => r.json())
         .then(d => {
             if (d.status === 'recording_queued') {
-                // Save to local store for legend & card display
                 const existing = customGestureStore.findIndex(g => g.name === raw);
                 if (existing === -1) {
                     customGestureStore.push({ name: raw, emoji: selectedEmoji, type: selectedGestureType });
@@ -1195,14 +1628,19 @@
                 saveCustomGestureStore();
                 updateLegend();
                 document.getElementById('record-status-text').textContent = `Queued! Hold "${raw}" gesture — recording starts shortly.`;
+                _startNoHandWatchdog(raw);
             } else {
-                document.getElementById('record-status-text').textContent = 'Error: ' + (d.error||'unknown');
+                document.getElementById('record-status-text').textContent = 'Error: ' + (d.error || 'unknown');
                 document.getElementById('record-start-btn').disabled = false;
+                const overlay = document.getElementById('countdown-overlay');
+                if (overlay) overlay.classList.remove('active');
             }
         })
         .catch(() => {
             document.getElementById('record-status-text').textContent = 'Backend not reachable.';
             document.getElementById('record-start-btn').disabled = false;
+            const overlay = document.getElementById('countdown-overlay');
+            if (overlay) overlay.classList.remove('active');
         });
     }
 
