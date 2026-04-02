@@ -1,6 +1,7 @@
-# Ishara_Coffee
+# Ishara Coffee ☕
 
-> *Ishara* (इशारा) — Hindi/Bengali for **gesture** or **signal**. Because your hands do the talking. ☕
+> *Ishara* (इशारा) — Hindi/Bengali for **gesture** or **signal**. Because your hands do the talking. <br> 
+> *Kaafi* (काफी) — Hindi/Bengali for **enough**. As in, one gesture is all it takes. *(Also sounds like "Coffee" — and yes, that's intentional :P )* </br>
 
 A real-time hand gesture recognition system built with **MediaPipe** and **Python** — detects single-hand gestures and two-hand combos, triggers popup images with audio, and streams live data to a web dashboard.
 
